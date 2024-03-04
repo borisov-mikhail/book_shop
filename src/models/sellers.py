@@ -12,7 +12,7 @@ class Seller(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(50), nullable=False)
     last_name: Mapped[str] = mapped_column(String(50), nullable=False)
-    e_mail: Mapped[str] = mapped_column(String(50), nullable=False)
+    e_mail: Mapped[str] = mapped_column(EmailType, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
     
     books : Mapped[List['Book']] = relationship(cascade='all, delete-orphan')

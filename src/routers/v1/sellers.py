@@ -10,10 +10,11 @@ from src.configurations.database import get_async_session
 from src.models.books import Book
 from src.models.sellers import Seller
 from src.schemas.sellers import IncomingSeller, ReturnedAllSellers, ReturnedSeller, ReturnedSellerWithBooks
+from src.utils.password import get_password_hash
+from src.utils.token_protector import protect_by_token
+
 
 sellers_router = APIRouter(tags=["sellers"], prefix="/sellers")
-
-# Больше не симулируем хранилище данных. Подключаемся к реальному, через сессию.
 DBSession = Annotated[AsyncSession, Depends(get_async_session)]
 
 
@@ -26,7 +27,7 @@ async def create_seller(
         first_name=seller.first_name,
         last_name=seller.last_name,
         e_mail=seller.e_mail,
-        password=seller.password,
+        password=get_password_hash(seller.password),
     )
     session.add(new_seller)
     await session.flush()
@@ -45,6 +46,7 @@ async def get_all_sellers(session: DBSession):
 
 # Ручка для получения продавца по его ИД
 @sellers_router.get("/{seller_id}", response_model=ReturnedSellerWithBooks)
+@protect_by_token
 async def get_seller(seller_id: int, session: DBSession):
     seller_query = await session.get(Seller, seller_id)
     if not seller_query:

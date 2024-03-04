@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from src.models import books
 from src.models import sellers
+from src.utils.password import create_access_token
 
 
 # Тест на ручку создания продавца
@@ -26,8 +27,8 @@ async def test_create_seller(db_session, async_client):
 # Тест на ручку получения списка всех продавцов
 @pytest.mark.asyncio
 async def test_get_sellers(db_session, async_client):
-    seller1 = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
-    seller2 = sellers.Seller(first_name="name_2", last_name="familia_2", e_mail="asdfasdf_123", password="qwertyuiop")
+    seller1 = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
+    seller2 = sellers.Seller(first_name="name_2", last_name="familia_2", e_mail="asdfasdf_123@mail.ru", password="qwertyuiop")
     db_session.add_all([seller1, seller2])
     await db_session.flush()
 
@@ -36,8 +37,8 @@ async def test_get_sellers(db_session, async_client):
     assert response.status_code == status.HTTP_200_OK
 
     assert response.json() == {
-        "sellers": [{"id": seller1.id, "first_name": "name", "last_name": "familia", "e_mail": "asdfasdf"},
-                    {"id": seller2.id, "first_name": "name_2", "last_name": "familia_2", "e_mail": "asdfasdf_123"},
+        "sellers": [{"id": seller1.id, "first_name": "name", "last_name": "familia", "e_mail": "asdfasdf@mail.ru"},
+                    {"id": seller2.id, "first_name": "name_2", "last_name": "familia_2", "e_mail": "asdfasdf_123@mail.ru"},
                     ]
     }
 
@@ -45,23 +46,25 @@ async def test_get_sellers(db_session, async_client):
 # Тест на ручку получения продавца со списком его книг
 @pytest.mark.asyncio
 async def test_get_seller_with_books(db_session, async_client):
-    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
+    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
     db_session.add(seller)
     await db_session.flush()
     
-    data = { "title": "Wrong Code", "author": "Robert Martin", "pages": 104, "year": 2007,
+    token = create_access_token(data={"some": seller.e_mail})
+    
+    data = {'token': token, "title": "Wrong Code", "author": "Robert Martin", "pages": 104, "year": 2007,
             "seller_id": seller.id}
     response = await async_client.post("/api/v1/books/", json=data)
 
     result_data = response.json()
-    response = await async_client.request(method="GET", url=f"/api/v1/sellers/{seller.id}")
+    response = await async_client.request(method="GET", url=f"/api/v1/sellers/{seller.id}", content="{" + f"\"token\":\"{str(token)}\"" + "}")
 
     assert response.status_code == status.HTTP_200_OK
     
     assert response.json() == {"id": seller.id,
                                "first_name": "name",
                                "last_name": "familia",
-                               "e_mail": "asdfasdf",
+                               "e_mail": "asdfasdf@mail.ru",
                                "books": [result_data]
                                }
 
@@ -69,7 +72,7 @@ async def test_get_seller_with_books(db_session, async_client):
 # Тест на ручку удаления продавца
 @pytest.mark.asyncio
 async def test_delete_seller(db_session, async_client):
-    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
+    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
     db_session.add(seller)
     await db_session.flush()
     
@@ -94,7 +97,7 @@ async def test_delete_seller(db_session, async_client):
 # Тест на ручку обновления продавца
 @pytest.mark.asyncio
 async def test_update_seller(db_session, async_client):
-    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
+    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
     db_session.add(seller)
     await db_session.flush()
 

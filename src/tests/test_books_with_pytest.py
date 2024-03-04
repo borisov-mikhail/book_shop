@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from src.models import books
 from src.models import sellers
+from src.utils.password import create_access_token
 
 result = {
     "books": [
@@ -16,11 +17,13 @@ result = {
 # Тест на ручку создающую книгу
 @pytest.mark.asyncio
 async def test_create_book(db_session, async_client):
-    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
+    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
     db_session.add(seller)
     await db_session.flush()
     
-    data = {"title": "Wrong Code", "author": "Robert Martin", "pages": 104, "year": 2007, "seller_id": seller.id}
+    token = create_access_token(data={"some": seller.e_mail})
+    
+    data = {'token': token, "title": "Wrong Code", "author": "Robert Martin", "pages": 104, "year": 2007, 'seller_id': seller.id}
     response = await async_client.post("/api/v1/books/", json=data)
     assert response.status_code == status.HTTP_201_CREATED
 
@@ -39,7 +42,7 @@ async def test_create_book(db_session, async_client):
 # Тест на ручку получения списка книг
 @pytest.mark.asyncio
 async def test_get_books(db_session, async_client):
-    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
+    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
     db_session.add(seller)
     await db_session.flush()
     
@@ -69,7 +72,7 @@ async def test_get_books(db_session, async_client):
 # Тест на ручку получения одной книги
 @pytest.mark.asyncio
 async def test_get_single_book(db_session, async_client):
-    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
+    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
     db_session.add(seller)
     await db_session.flush()
     
@@ -99,7 +102,7 @@ async def test_get_single_book(db_session, async_client):
 # Тест на ручку удаления книги
 @pytest.mark.asyncio
 async def test_delete_book(db_session, async_client):
-    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
+    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
     db_session.add(seller)
     await db_session.flush()
     
@@ -123,9 +126,11 @@ async def test_delete_book(db_session, async_client):
 # Тест на ручку обновления книги
 @pytest.mark.asyncio
 async def test_update_book(db_session, async_client):
-    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf", password="qwertyuiop")
+    seller = sellers.Seller(first_name="name", last_name="familia", e_mail="asdfasdf@mail.ru", password="qwertyuiop")
     db_session.add(seller)
     await db_session.flush()
+    
+    token = create_access_token(data={"some": seller.e_mail})
     
     # Создаем книги вручную, а не через ручку, чтобы нам не попасться на ошибку которая
     # может случиться в POST ручке
@@ -136,7 +141,7 @@ async def test_update_book(db_session, async_client):
 
     response = await async_client.put(
         f"/api/v1/books/{book.id}",
-        json={"title": "Mziri", "author": "Lermontov", "count_pages": 100, "year": 2007, "id": book.id, 'seller_id': seller.id},
+        json={'token': token, "title": "Mziri", "author": "Lermontov", "count_pages": 100, "year": 2007, "id": book.id, 'seller_id': seller.id},
     )
 
     assert response.status_code == status.HTTP_200_OK
